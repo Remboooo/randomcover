@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>My band</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+        <script src="main.js"></script>
+        <link rel="stylesheet" type="text/css" href="style.css" />
+    </head>
+    <body style="background: #333; color: #fff;">
+        <h1>Your album cover</h1>
+        <p id="reload"><a href="#" onclick="location.reload(true)">Another!</a></p>
+		<div id="cover" style="
+		    background: url({image}) no-repeat center center;
+		    background-size: cover;
+		    width: 640px;
+		    height: 640px;
+		    position: relative;
+		">
+			<h1 id="artist" style="position: absolute; top: 0; width: calc(100% - 20px);">{artist}</h1>
+			<h2 id="title" style="position: absolute; bottom: 0; width: calc(100% - 20px);">{title}</h2>
+		</div>
+		<p id="sources">
+            <a href="{flickr_page}" target="_blank">Flickr source page</a><br />
+            <a href="{wikipedia_page}" target="_blank">Wikipedia source page</a><br />
+            <a href="{wikiquote_page}" target="_blank">Wikiquote source page</a>
+		</p>
+        <div style="width: 0; height: 0; visibility: hidden; overflow: hidden;">
+            <img id="image" src="{image}" />
+        </div>
+    </body>
+</html>

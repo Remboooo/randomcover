@@ -1,0 +1,28 @@
+body {
+    font-family: sans-serif;
+    color: #fff;
+    text-align: center;
+}
+
+a:link, a:visited {
+    color: #bbf;
+    text-decoration: none;
+}
+
+
+h1 {
+    line-height: 100%;
+    margin: 0;
+    padding: 10px;
+}
+
+h2 {
+    line-height: 100%;
+    margin: 0;
+    padding: 10px;
+}
+
+#cover {
+    margin: auto;
+    color: #fff;
+}
