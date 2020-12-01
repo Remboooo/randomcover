@@ -15,10 +15,22 @@ log = logging.getLogger(__name__)
 
 
 prune_title_prefixes = set([
-        'is', 'and', 'of', 'are', 'then', 'than', 'has', 'had', 'him', 'but', 'that'
+    'is', 'and', 'of', 'are', 'then', 'than', 'has', 'had', 'him', 'but', 'that', 'to', 'by', 'us', 'they', 'you', 'me'
 ])
 
-max_artist_words = 4
+forbidden_title_endings = set([
+    'mr', 'mrs', 'dr', 'ft'
+])
+
+prune_artist_prefixes = set([
+    'list', 'of'
+])
+
+prune_artist_endings = set([
+    'is', 'and', 'of', 'are', 'then', 'than', 'has', 'had', 'him', 'but', 'that'
+])
+
+max_artist_words = 6
 
 
 def get_flickr_image():
@@ -30,13 +42,34 @@ def get_flickr_image():
 
 
 def get_artist():
-    page = urlopen("https://en.wikipedia.org/wiki/Special:Random")
-    url = page.geturl()
-    soup = BeautifulSoup(page, "html.parser")
-    artist = soup.find('h1').text
-    artist = re.sub("[\(\[].*?[\)\]]", "", artist)
-    artist = ' '.join(artist.split(' ')[:max_artist_words])
-    return url, artist
+    for i in range(6):
+        page = urlopen("https://en.wikipedia.org/wiki/Special:Random")
+        url = page.geturl()
+        soup = BeautifulSoup(page, "html.parser")
+        artist = soup.find('h1').text
+        
+        # Cut out parentheses etc
+        artist = re.sub("[\(\[].*?[\)\]]", "", artist)
+
+        words = artist.split(' ')
+
+        # Prune non-alphabetic (e.g. numeric) prefixes or things like 'list of'
+        while words and (words[0].lower() in prune_artist_prefixes or re.fullmatch(r"[^A-Za-z]+", words[0])):
+            words = words[1:]
+    
+        # Cut to max word count
+        words = words[:max_artist_words]
+
+        # Prune disallowed postfixed
+        while words and words[-1].lower() in prune_artist_endings:
+            words = words[:-1]
+
+        # If nothing left, try again with new random page
+        if not words: continue
+
+        artist = ' '.join(words)
+        return url, artist
+    raise Exception("Could not get artist :(")
 
 
 def get_title():
@@ -48,15 +81,29 @@ def get_title():
         div = soup.find('div', id="mw-content-text")
         for ul in div.find_all('ul', recursive=True):
             for li in ul.find_all('li', recursive=False):
-                for match in re.findall("([A-Z][A-Za-z'\", ]+[A-Za-z]{2,} [A-Za-z]{2,}[.?!])( |$)", li.text):
+                # Try to match some kind of sentence starting with a capital letter, containing at least 2 words and ending in punctuation
+                for match in re.findall("([A-Z][A-Za-z'\", ]+[A-Za-z]{2,} [A-Za-z]{2,}[.?!;])( |$)", li.text):
                     quote = match[0]
-                    if quote[-1] == '.':
+
+                    # Remove unwanted punctuation
+                    while quote and quote[-1] in ('.', ';', '?', "'", '"'):
                         quote = quote[:-1]
+
+                    while quote and quote[0] in ('.', ':', '?', "'", '"'):
+                        quote = quote[1:]
+                    
+                    # Split to words and cut to random length
                     words = quote.split(' ')
                     words = words[-random.randint(3, 5):]
+
+                    # Prune unwanted prefix words
                     while words and words[0].lower() in prune_title_prefixes:
                         words = words[1:]
                     if not words: continue
+
+                    # Discard if sentence ends in "Dr" or "Mrs" etc; this is not a real sentence
+                    if words[-1].lower() in forbidden_title_endings: continue
+
                     title = ' '.join(words)
                     titles.append((url, title))
         if titles:
