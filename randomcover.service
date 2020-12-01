@@ -1,0 +1,13 @@
+[Unit]
+Description=Random album cover generator service
+
+[Service]
+Type=simple
+Restart=on-failure
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/randomcover
+ExecStart=/var/www/randomcover/venv/bin/python serve.py
+
+[Install]
+WantedBy=network-online.target

@@ -1,12 +1,18 @@
+import logging
 import html
 import random
+import re
+import sys
+from bs4 import BeautifulSoup
+from argparse import ArgumentParser
 from http.server import SimpleHTTPRequestHandler
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.request import urlopen
 
-import re
-from bs4 import BeautifulSoup
+
+log = logging.getLogger(__name__)
+
 
 prune_title_prefixes = set([
         'is', 'and', 'of', 'are', 'then', 'than', 'has', 'had', 'him', 'but', 'that'
@@ -94,8 +100,20 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 
 
-if __name__ == '__main__':
-    server_address = ('127.0.0.1', 8256)
-    httpd = ThreadedHTTPServer(server_address, MyRequestHandler)
+def main():
+    argparse = ArgumentParser(description="Random album cover generator service")
+    argparse.add_argument("--port", "-p", nargs="?", type=int, default=8080, help="TCP port to bind to")
+    argparse.add_argument("--address", "-a", nargs="?", type=str, default="127.0.0.1", help="Address to bind to")
+    argparse.add_argument("--verbose", "-v", action="store_true", help="Verbose mode (debug logging)")
+    args = argparse.parse_args()
+
+    logging.basicConfig(format='%(asctime)s [ %(levelname)5s | %(name)s ] %(message)s', level=logging.DEBUG if args.verbose else logging.INFO, stream=sys.stdout)
+
+    log.info(f"Starting HTTP server on {args.address}:{args.port}")
+    httpd = ThreadedHTTPServer((args.address, args.port), MyRequestHandler)
     httpd.serve_forever()
+
+
+if __name__ == '__main__':
+    main()
 
