@@ -743,7 +743,7 @@ function randomFont() {
 
 function randomizeText(element) {
     element.css('font-family', randomFont());
-    element.css('font-size', Math.floor(25 + Math.random() * 40) + 'pt');
+    element.css('font-size', Math.floor(25 + Math.random() * 30) + 'pt');
 
     topBottomPadding = Math.floor(10 + Math.random() * 100) + 'px';
     element.css('padding', topBottomPadding + ' 10px');

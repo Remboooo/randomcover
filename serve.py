@@ -2,10 +2,17 @@ import html
 import random
 from http.server import SimpleHTTPRequestHandler
 from http.server import HTTPServer
+from socketserver import ThreadingMixIn
 from urllib.request import urlopen
 
 import re
 from bs4 import BeautifulSoup
+
+prune_title_prefixes = set([
+        'is', 'and', 'of', 'are', 'then', 'than', 'has', 'had', 'him', 'but', 'that'
+])
+
+max_artist_words = 4
 
 
 def get_flickr_image():
@@ -21,26 +28,36 @@ def get_artist():
     url = page.geturl()
     soup = BeautifulSoup(page, "html.parser")
     artist = soup.find('h1').text
-    return url, re.sub("[\(\[].*?[\)\]]", "", artist)
+    artist = re.sub("[\(\[].*?[\)\]]", "", artist)
+    artist = ' '.join(artist.split(' ')[:max_artist_words])
+    return url, artist
 
 
 def get_title():
-    quotes = []
-    while not quotes:
+    titles = []
+    for i in range(3):
         page = urlopen("https://en.wikiquote.org/wiki/Special:Random")
         url = page.geturl()
         soup = BeautifulSoup(page, "html.parser")
         div = soup.find('div', id="mw-content-text")
-        for ul in div.find_all('ul', recursive=False):
+        for ul in div.find_all('ul', recursive=True):
             for li in ul.find_all('li', recursive=False):
                 for match in re.findall("([A-Z][A-Za-z'\", ]+[A-Za-z]{2,} [A-Za-z]{2,}[.?!])( |$)", li.text):
                     quote = match[0]
                     if quote[-1] == '.':
                         quote = quote[:-1]
-                    quotes.append((url, quote))
-    url, title = random.choice(quotes)
-    words = title.split(' ')
-    title = ' '.join(words[-random.randint(3, 5):])
+                    words = quote.split(' ')
+                    words = words[-random.randint(3, 5):]
+                    while words and words[0].lower() in prune_title_prefixes:
+                        words = words[1:]
+                    if not words: continue
+                    title = ' '.join(words)
+                    titles.append((url, title))
+        if titles:
+            break
+    else:
+        raise Exception("no title :(")
+    url, title = random.choice(titles)
     return url, title
 
 
@@ -62,17 +79,23 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(stuff.encode())
 
     def do_GET(self):
-        if self.path == '/':
+        self.path = self.path.split('/')[-1]
+        if self.path.endswith('.js') or self.path.endswith('.css'):
+            super().do_GET()
+        else:
             self.send_response(200, 'OK')
             self.send_header('Content-type', 'text/html')
             self.end_headers()
 
             self.send(generate_album_html())
-        elif self.path.endswith('.js') or self.path.endswith('.css'):
-            super().do_GET()
+
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
 
 
 if __name__ == '__main__':
-    server_address = ('', 8000)
-    httpd = HTTPServer(server_address, MyRequestHandler)
+    server_address = ('127.0.0.1', 8256)
+    httpd = ThreadedHTTPServer(server_address, MyRequestHandler)
     httpd.serve_forever()
+
